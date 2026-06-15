@@ -455,7 +455,7 @@ const fileUrlCache = new WeakMap();
 
       list.forEach(item => {
         const card = document.createElement("article");
-        card.className = "card" + (item.id === currentPreviewId ? " selected" : "");
+        card.className = "card" + (item.id === currentPreviewId ? " selected" : "") + (item.checked ? " checked" : "");
         card.dataset.id = item.id;
 
         const files = getItemFiles(item);
@@ -464,7 +464,6 @@ const fileUrlCache = new WeakMap();
         const rentalBadge = item.rentalAvailable ? `<span class="badge">レンタル可</span>` : "";
 
         card.innerHTML = `
-          <button class="fav ${item.checked ? "on" : ""}" title="印刷対象にする">✓</button>
           <div class="thumb">
             ${thumb}
             ${rentalBadge}
@@ -482,18 +481,13 @@ const fileUrlCache = new WeakMap();
 
         card.addEventListener("mouseenter", () => setPreview(item.id));
         card.addEventListener("focusin", () => setPreview(item.id));
-        card.addEventListener("click", (e) => {
-          if (e.target.closest(".fav")) return;
+        card.addEventListener("click", async (e) => {
           if (e.target.closest(".open")) return openFile(item, currentPreviewId === item.id ? currentPreviewFileIndex : 0);
           if (e.target.closest(".edit")) return openModal(item);
           if (e.target.closest(".delete")) return deleteItem(item.id);
-          setPreview(item.id);
-        });
-
-        card.querySelector(".fav").addEventListener("click", async (e) => {
-          e.stopPropagation();
           item.checked = !item.checked;
-          e.currentTarget.classList.toggle("on", item.checked);
+          card.classList.toggle("checked", item.checked);
+          setPreview(item.id);
           const saved = await saveMaterials([item]);
           renderStats();
           if (el.sort.value === "checked") {
