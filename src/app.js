@@ -472,7 +472,7 @@ const fileUrlCache = new WeakMap();
             <div class="tag-row">${(item.tags || []).slice(0, 3).map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join("")}</div>
             <h3 class="card-title">${escapeHtml(item.title)}</h3>
             <div class="card-actions">
-              <button class="mini-btn open">開く</button>
+              <button class="mini-btn download">DL</button>
               <button class="mini-btn edit">編集</button>
               <button class="mini-btn delete">削除</button>
             </div>
@@ -482,7 +482,7 @@ const fileUrlCache = new WeakMap();
         card.addEventListener("mouseenter", () => setPreview(item.id));
         card.addEventListener("focusin", () => setPreview(item.id));
         card.addEventListener("click", async (e) => {
-          if (e.target.closest(".open")) return openFile(item, currentPreviewId === item.id ? currentPreviewFileIndex : 0);
+          if (e.target.closest(".download")) return downloadFile(item, 0);
           if (e.target.closest(".edit")) return openModal(item);
           if (e.target.closest(".delete")) return deleteItem(item.id);
           item.checked = !item.checked;
