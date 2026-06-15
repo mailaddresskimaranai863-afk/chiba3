@@ -540,6 +540,7 @@ const fileUrlCache = new WeakMap();
       const file = files[currentPreviewFileIndex];
 
       el.previewBody.innerHTML = "";
+      el.previewBody.classList.toggle("pdf-preview-mode", isPdfFile(file));
 
       if (isImageFile(file)) {
         const img = document.createElement("img");
@@ -579,6 +580,7 @@ const fileUrlCache = new WeakMap();
     function clearPreview() {
       currentPreviewId = null;
       currentPreviewFileIndex = 0;
+      el.previewBody.classList.remove("pdf-preview-mode");
       el.previewBody.innerHTML = `<div class="preview-placeholder">カードにカーソルを乗せると、ここに大きく表示されます。</div>`;
       el.previewTitle.textContent = "未選択";
       el.previewMeta.textContent = `${getTypeLabel()}を選択してください。`;

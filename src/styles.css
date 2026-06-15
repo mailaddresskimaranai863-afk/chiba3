@@ -647,6 +647,13 @@
       position: relative;
     }
 
+    .preview-body.pdf-preview-mode {
+      align-content: start;
+      background: #fff;
+      padding: 0;
+      place-items: start center;
+    }
+
     .preview-body iframe,
     .preview-body img {
       width: 100%;
@@ -660,6 +667,14 @@
     .preview-body iframe {
       display: block;
       background-color: #fff;
+    }
+
+    .preview-body iframe.pdf-preview {
+      aspect-ratio: 210 / 297;
+      height: auto;
+      max-height: 100%;
+      object-fit: unset;
+      width: 100%;
     }
 
     .preview-placeholder {
