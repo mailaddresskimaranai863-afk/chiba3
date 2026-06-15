@@ -410,6 +410,7 @@ let cloudBooted = false;
 
     function updateViewChrome() {
       const label = getTypeLabel();
+      document.body.dataset.theme = currentType;
       el.listTitle.textContent = `${label}一覧`;
       if (el.totalLabel) el.totalLabel.textContent = `登録${label}`;
       el.addBtn.textContent = `＋ ${label}を追加`;
