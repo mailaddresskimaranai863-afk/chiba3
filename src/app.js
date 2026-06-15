@@ -1070,11 +1070,18 @@ const fileUrlCache = new WeakMap();
         return path.split("/").map(part => encodeURIComponent(part)).join("/");
       }
 
-      function safeFileName(name = "file") {
-        return String(name)
-          .replace(/[\\/:*?"<>|#%&{}$!'@+=`]/g, "-")
-          .replace(/\s+/g, "-")
-          .slice(0, 120) || "file";
+      function getStorageExtension(file = {}) {
+        const nameExt = String(file.fileName || "").split(".").pop();
+        if (nameExt && nameExt !== file.fileName && /^[a-z0-9]{1,8}$/i.test(nameExt)) {
+          return nameExt.toLowerCase();
+        }
+        if ((file.mime || "").includes("pdf")) return "pdf";
+        if ((file.mime || "").includes("png")) return "png";
+        if ((file.mime || "").includes("webp")) return "webp";
+        if ((file.mime || "").includes("gif")) return "gif";
+        if ((file.mime || "").includes("svg")) return "svg";
+        if ((file.mime || "").startsWith("image/")) return "jpg";
+        return "bin";
       }
 
       function publicStorageUrl(path) {
@@ -1090,7 +1097,7 @@ const fileUrlCache = new WeakMap();
           return file;
         }
 
-        const path = `${itemId}/${crypto.randomUUID()}-${index}-${safeFileName(file.fileName)}`;
+        const path = `${itemId}/${crypto.randomUUID()}-${index}.${getStorageExtension(file)}`;
         const blob = dataUrlToBlob(file.dataUrl);
         await request(`/storage/v1/object/${bucketName}/${encodeStoragePath(path)}`, {
           method: "POST",
