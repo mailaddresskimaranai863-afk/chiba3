@@ -1052,7 +1052,8 @@ const fileUrlCache = new WeakMap();
         });
 
         if (!response.ok) {
-          throw new Error(`Supabase request failed: ${response.status}`);
+          const detail = await response.text().catch(() => "");
+          throw new Error(`Supabase request failed: ${response.status}${detail ? ` ${detail}` : ""}`);
         }
 
         if (response.status === 204) return null;
