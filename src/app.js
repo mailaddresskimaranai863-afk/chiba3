@@ -491,9 +491,12 @@ const fileUrlCache = new WeakMap();
         card.querySelector(".fav").addEventListener("click", (e) => {
           e.stopPropagation();
           item.checked = !item.checked;
+          e.currentTarget.classList.toggle("on", item.checked);
           saveMaterials();
-          render();
-          setPreview(item.id, currentPreviewId === item.id ? currentPreviewFileIndex : 0);
+          renderStats();
+          if (el.sort.value === "checked") {
+            render();
+          }
           showToast(item.checked ? "印刷対象に追加しました" : "印刷対象から外しました");
         });
 
