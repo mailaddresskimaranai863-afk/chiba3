@@ -153,7 +153,7 @@ const fileUrlCache = new WeakMap();
         checked: false
       });
 
-      const saved = await saveMaterials();
+      const saved = await saveMaterials([materials[0]]);
       render();
       setPreview(materials[0].id);
       if (saved) showToast(files.length > 1 ? `1カードに${files.length}件まとめて追加しました` : "1件追加しました");
@@ -295,12 +295,12 @@ const fileUrlCache = new WeakMap();
       if (first) setPreview(first.id);
     }
 
-    function saveMaterials() {
+    function saveMaterials(itemsToSync = materials) {
       writeMaterialsToLocalDb().catch(error => {
         console.warn("Local IndexedDB save failed", error);
         alert("保存に失敗しました。ブラウザの保存容量を確認してください。");
       });
-      return syncCloudNow();
+      return syncCloudNow(itemsToSync);
     }
 
     function today() {
@@ -492,7 +492,7 @@ const fileUrlCache = new WeakMap();
           e.stopPropagation();
           item.checked = !item.checked;
           e.currentTarget.classList.toggle("on", item.checked);
-          const saved = await saveMaterials();
+          const saved = await saveMaterials([item]);
           renderStats();
           if (el.sort.value === "checked") {
             render();
@@ -680,7 +680,7 @@ const fileUrlCache = new WeakMap();
 
       currentType = selectedType;
       currentCategory = "すべて";
-      const saved = await saveMaterials();
+      const saved = await saveMaterials([payload]);
       closeModal();
       render();
       setPreview(payload.id);
@@ -694,7 +694,7 @@ const fileUrlCache = new WeakMap();
       if (!confirm(`「${item.title}」を削除しますか？`)) return;
       materials = materials.filter(m => m.id !== id);
       queueCloudDelete(id);
-      const saved = await saveMaterials();
+      const saved = await saveMaterials([]);
       if (currentPreviewId === id) clearPreview();
       render();
       if (saved) showToast("削除しました");
@@ -722,7 +722,7 @@ const fileUrlCache = new WeakMap();
         return;
       }
       materials = materials.map(m => getItemType(m) === currentType ? ({ ...m, checked: false }) : m);
-      const saved = await saveMaterials();
+      const saved = await saveMaterials(materials.filter(m => getItemType(m) === currentType));
       render();
       if (saved) showToast("チェックを解除しました");
     }
@@ -941,7 +941,7 @@ const fileUrlCache = new WeakMap();
           if (!Array.isArray(data)) throw new Error("invalid");
           if (!confirm("現在のチラシ一覧を読み込みデータで置き換えますか？")) return;
           materials = data.map(item => ({ ...normalizeItem(item), files: getItemFiles(item) }));
-          const saved = await saveMaterials();
+          const saved = await saveMaterials(materials);
           clearPreview();
           render();
           if (saved) showToast("読み込みました");
@@ -1072,20 +1072,22 @@ const fileUrlCache = new WeakMap();
             cloudUpdatedAt: row.updated_at
           }));
         },
-        upsert(items) {
+        async upsert(items) {
           if (!items.length) return Promise.resolve();
-          const rows = items.map(item => ({
-            id: item.id,
-            payload: {
-              ...item,
-              cloudUpdatedAt: undefined
-            }
-          }));
-          return request("/rest/v1/materials?on_conflict=id", {
-            method: "POST",
-            headers: { Prefer: "resolution=merge-duplicates" },
-            body: JSON.stringify(rows)
-          });
+          for (const item of items) {
+            const row = {
+              id: item.id,
+              payload: {
+                ...item,
+                cloudUpdatedAt: undefined
+              }
+            };
+            await request("/rest/v1/materials?on_conflict=id", {
+              method: "POST",
+              headers: { Prefer: "resolution=merge-duplicates" },
+              body: JSON.stringify([row])
+            });
+          }
         },
         delete(id) {
           return request(`/rest/v1/materials?id=eq.${encodeURIComponent(id)}`, {
@@ -1103,7 +1105,7 @@ const fileUrlCache = new WeakMap();
       return [...byId.values()].map(item => ({ ...normalizeItem(item), files: getItemFiles(item) }));
     }
 
-    async function syncCloudNow() {
+    async function syncCloudNow(itemsToSync = materials) {
       try {
         if (!cloudStore) {
           const config = await loadCloudConfig();
@@ -1114,7 +1116,7 @@ const fileUrlCache = new WeakMap();
         }
 
         await flushCloudDeletes();
-        await cloudStore.upsert(materials);
+        await cloudStore.upsert(itemsToSync);
         showToast("Supabaseに保存しました");
         return true;
       } catch (error) {
