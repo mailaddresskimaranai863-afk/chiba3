@@ -909,15 +909,36 @@ const fileUrlCache = new WeakMap();
       `);
     }
 
-    function downloadFile(item, fileIndex = 0) {
+    async function downloadFile(item, fileIndex = 0) {
       const files = getItemFiles(item);
       const file = files[Math.min(Math.max(fileIndex, 0), files.length - 1)] || files[0];
+      const fileUrl = getFileDisplayUrl(file);
+      if (!fileUrl) return;
+
+      let downloadUrl = fileUrl;
+      let shouldRevoke = false;
+
+      try {
+        if (!fileUrl.startsWith("data:")) {
+          const response = await fetch(fileUrl);
+          if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+          const blob = await response.blob();
+          downloadUrl = URL.createObjectURL(blob);
+          shouldRevoke = true;
+        }
+      } catch (error) {
+        console.warn("Blob download failed, falling back to direct URL", error);
+      }
+
       const a = document.createElement("a");
-      a.href = getFileDisplayUrl(file);
+      a.href = downloadUrl;
       a.download = file.fileName || `${item.title}.file`;
       document.body.appendChild(a);
       a.click();
       a.remove();
+      if (shouldRevoke) {
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      }
     }
 
     function exportJson() {
