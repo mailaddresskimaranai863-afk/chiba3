@@ -1,4 +1,8 @@
 const STORAGE_KEY = "eigyo_material_shelf_products_v2";
+const LOCAL_DB_NAME = "eigyo_material_shelf_db";
+const LOCAL_DB_VERSION = 1;
+const LOCAL_DB_STORE = "keyval";
+const LOCAL_DB_MATERIALS_KEY = "materials";
 const CLOUD_DELETE_QUEUE_KEY = "eigyo_material_shelf_deleted_ids_v1";
 const CLOUD_CONFIG_ENDPOINT = "/api/config";
 
@@ -176,6 +180,77 @@ let cloudBooted = false;
       return PRELOADED_MATERIALS.map(normalizeItem);
     }
 
+    function openLocalDb() {
+      return new Promise((resolve, reject) => {
+        if (!("indexedDB" in window)) {
+          reject(new Error("IndexedDB is not available"));
+          return;
+        }
+
+        const request = indexedDB.open(LOCAL_DB_NAME, LOCAL_DB_VERSION);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(LOCAL_DB_STORE)) {
+            db.createObjectStore(LOCAL_DB_STORE);
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function readMaterialsFromLocalDb() {
+      const db = await openLocalDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(LOCAL_DB_STORE, "readonly");
+        const store = tx.objectStore(LOCAL_DB_STORE);
+        const request = store.get(LOCAL_DB_MATERIALS_KEY);
+        request.onsuccess = () => {
+          const value = Array.isArray(request.result) ? request.result : [];
+          resolve(value.map(normalizeItem));
+        };
+        request.onerror = () => reject(request.error);
+        tx.oncomplete = () => db.close();
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      });
+    }
+
+    async function writeMaterialsToLocalDb() {
+      const db = await openLocalDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(LOCAL_DB_STORE, "readwrite");
+        const store = tx.objectStore(LOCAL_DB_STORE);
+        store.put(materials, LOCAL_DB_MATERIALS_KEY);
+        tx.oncomplete = () => {
+          db.close();
+          localStorage.removeItem(STORAGE_KEY);
+          resolve();
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      });
+    }
+
+    async function initLocalStore() {
+      try {
+        const storedMaterials = await readMaterialsFromLocalDb();
+        if (storedMaterials.length) {
+          materials = mergeMaterials(storedMaterials, materials);
+          render();
+          setPreview(getFiltered()[0]?.id);
+        } else if (materials.length) {
+          await writeMaterialsToLocalDb();
+        }
+      } catch (error) {
+        console.warn("Local IndexedDB load failed", error);
+      }
+    }
+
     function normalizeItem(item) {
       const type = item.type || (signCategorySet.has(item.category) ? "sign" : "material");
       return {
@@ -220,12 +295,11 @@ let cloudBooted = false;
     }
 
     function saveMaterials() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(materials));
-        scheduleCloudSync();
-      } catch (e) {
-        alert("保存容量を超えました。大容量PDFはサーバー保存版への移行がおすすめです。");
-      }
+      writeMaterialsToLocalDb().catch(error => {
+        console.warn("Local IndexedDB save failed", error);
+        alert("保存に失敗しました。ブラウザの保存容量を確認してください。");
+      });
+      scheduleCloudSync();
     }
 
     function today() {
@@ -886,7 +960,12 @@ let cloudBooted = false;
 
     render();
     setPreview(getFiltered()[0]?.id);
-    initCloudStore();
+    bootStores();
+
+    async function bootStores() {
+      await initLocalStore();
+      await initCloudStore();
+    }
 
     async function initCloudStore() {
       if (cloudBooted) return;
@@ -901,7 +980,7 @@ let cloudBooted = false;
         const remoteMaterials = await cloudStore.list();
         if (remoteMaterials.length) {
           materials = mergeMaterials(materials, remoteMaterials);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(materials));
+          await writeMaterialsToLocalDb();
           render();
           setPreview(getFiltered()[0]?.id);
         }

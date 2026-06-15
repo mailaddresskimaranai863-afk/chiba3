@@ -20,7 +20,7 @@ SupabaseのSQL Editorで `supabase/schema.sql` を実行してください。
 - `SUPABASE_URL`: Supabase Project URL
 - `SUPABASE_ANON_KEY`: Supabase anon public key
 
-環境変数がない場合でも、アプリは端末内保存で動きます。環境変数がある場合は、端末内保存に加えてSupabaseへ同期します。
+環境変数がない場合でも、アプリは端末内保存で動きます。端末内保存には、大きめのPDFも扱いやすいIndexedDBを使います。環境変数がある場合は、端末内保存に加えてSupabaseへ同期します。
 
 ## GitHubからVercelへ公開
 
@@ -42,6 +42,6 @@ npm run dev
 
 ## 注意
 
-現在の互換構成では、PDFや画像は既存アプリと同じくデータURLとして保存します。大きなファイルを多く扱う場合は、次の段階でSupabase Storageへファイル本体を分ける構成にすると安定します。
+現在の互換構成では、PDFや画像は既存アプリと同じくデータURLとして保存します。大きなファイルを大量に扱う場合は、次の段階でSupabase Storageへファイル本体を分ける構成にするとさらに安定します。
 
 `supabase/schema.sql` は初期導入しやすいように、匿名キーで読み書きできるポリシーにしています。公開URLを社外や不特定多数に共有する場合は、Supabase Authを入れて利用者を制限してください。
