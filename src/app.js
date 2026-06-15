@@ -359,7 +359,7 @@ const fileUrlCache = new WeakMap();
       }
       if (isPdfFile(file)) {
         const pdfUrl = getFileDisplayUrl(file);
-        return `<iframe class="pdf-thumb" src="${pdfUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0"></iframe>`;
+        return `<iframe class="pdf-thumb" src="${pdfUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0" style="background:#fff;color-scheme:light;"></iframe>`;
       }
       return `<div class="doc-icon">${ext}</div>`;
     }
@@ -548,8 +548,11 @@ const fileUrlCache = new WeakMap();
         el.previewBody.appendChild(img);
       } else if (isPdfFile(file)) {
         const iframe = document.createElement("iframe");
+        iframe.className = "pdf-preview";
         iframe.src = `${getFileDisplayUrl(file)}#page=1&toolbar=0&navpanes=0`;
         iframe.title = file.fileName || item.title;
+        iframe.style.background = "#fff";
+        iframe.style.colorScheme = "light";
         el.previewBody.appendChild(iframe);
       } else {
         el.previewBody.innerHTML = `<div class="preview-placeholder"><div class="doc-icon">${getExt(file.fileName, file.mime)}</div><br>プレビュー未対応の形式です。</div>`;
@@ -897,10 +900,11 @@ const fileUrlCache = new WeakMap();
       }
       const fileUrl = getFileDisplayUrl(file);
       const content = isImageFile(file)
-        ? `<img src="${fileUrl}" style="max-width:100vw;max-height:100vh;display:block;margin:auto;">`
-        : `<iframe src="${fileUrl}#page=1" style="border:0;width:100vw;height:100vh;"></iframe>`;
+        ? `<img src="${fileUrl}" style="max-width:100vw;max-height:100vh;display:block;margin:auto;background:#fff;">`
+        : `<iframe src="${fileUrl}#page=1" style="border:0;width:100vw;height:100vh;background:#fff;color-scheme:light;"></iframe>`;
       win.document.write(`
         <title>${escapeHtml(item.title)}</title>
+        <style>html,body{margin:0;background:#fff;color-scheme:light;}</style>
         ${content}
       `);
     }
