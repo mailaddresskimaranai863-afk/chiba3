@@ -1057,7 +1057,10 @@ const fileUrlCache = new WeakMap();
         }
 
         if (response.status === 204) return null;
-        return response.json();
+
+        const text = await response.text();
+        if (!text) return null;
+        return JSON.parse(text);
       }
 
       return {
