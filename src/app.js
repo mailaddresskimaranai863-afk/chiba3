@@ -540,19 +540,22 @@ const fileUrlCache = new WeakMap();
       const files = getItemFiles(item);
       currentPreviewFileIndex = Math.min(Math.max(fileIndex, 0), files.length - 1);
       const file = files[currentPreviewFileIndex];
+      const fileUrl = getFileDisplayUrl(file);
 
       el.previewBody.innerHTML = "";
       el.previewBody.classList.toggle("pdf-preview-mode", isPdfFile(file));
 
-      if (isImageFile(file)) {
+      if (!fileUrl) {
+        el.previewBody.innerHTML = `<div class="preview-placeholder">プレビューできるファイルがありません</div>`;
+      } else if (isImageFile(file)) {
         const img = document.createElement("img");
-        img.src = getFileDisplayUrl(file);
+        img.src = fileUrl;
         img.alt = item.title;
         el.previewBody.appendChild(img);
       } else if (isPdfFile(file)) {
         const iframe = document.createElement("iframe");
         iframe.className = "pdf-preview";
-        iframe.src = `${getFileDisplayUrl(file)}#page=1&toolbar=0&navpanes=0`;
+        iframe.src = `${fileUrl}#page=1&toolbar=0&navpanes=0`;
         iframe.title = file.fileName || item.title;
         iframe.style.background = "#fff";
         iframe.style.colorScheme = "light";
@@ -667,7 +670,7 @@ const fileUrlCache = new WeakMap();
         checked: existing?.checked || false
       };
 
-      if (!payload.dataUrl) {
+      if (!getFileDisplayUrl(primary)) {
         payload.mime = "image/svg+xml";
         payload.fileName = "placeholder.svg";
         payload.dataUrl = sampleSvg(payload.title.slice(0, 8) || getTypeLabel(selectedType));
