@@ -5,6 +5,7 @@ const LOCAL_DB_STORE = "keyval";
 const LOCAL_DB_MATERIALS_KEY = "materials";
 const CLOUD_DELETE_QUEUE_KEY = "eigyo_material_shelf_deleted_ids_v1";
 const CLOUD_CONFIG_ENDPOINT = "/api/config";
+const CLOUD_STORAGE_BUCKET = "materials";
 
 let cloudStore = null;
 let cloudSyncTimer = null;
@@ -344,6 +345,7 @@ const fileUrlCache = new WeakMap();
     }
 
     function getFileDisplayUrl(file) {
+      if (file?.publicUrl || file?.storageUrl) return file.publicUrl || file.storageUrl;
       if (!file?.dataUrl) return "";
       if (!isPdfFile(file)) return file.dataUrl;
       if (fileUrlCache.has(file)) return fileUrlCache.get(file);
@@ -355,7 +357,7 @@ const fileUrlCache = new WeakMap();
     function createThumbHtml(file) {
       const ext = getExt(file.fileName, file.mime);
       if (isImageFile(file)) {
-        return `<img src="${file.dataUrl}" alt="">`;
+        return `<img src="${getFileDisplayUrl(file)}" alt="">`;
       }
       if (isPdfFile(file)) {
         const pdfUrl = getFileDisplayUrl(file);
@@ -1036,6 +1038,7 @@ const fileUrlCache = new WeakMap();
 
     function createSupabaseRestStore(config) {
       const baseUrl = config.supabaseUrl.replace(/\/$/, "");
+      const bucketName = config.supabaseStorageBucket || CLOUD_STORAGE_BUCKET;
       const headers = {
         apikey: config.supabaseAnonKey,
         Authorization: `Bearer ${config.supabaseAnonKey}`,
@@ -1063,6 +1066,67 @@ const fileUrlCache = new WeakMap();
         return JSON.parse(text);
       }
 
+      function encodeStoragePath(path) {
+        return path.split("/").map(part => encodeURIComponent(part)).join("/");
+      }
+
+      function safeFileName(name = "file") {
+        return String(name)
+          .replace(/[\\/:*?"<>|#%&{}$!'@+=`]/g, "-")
+          .replace(/\s+/g, "-")
+          .slice(0, 120) || "file";
+      }
+
+      function publicStorageUrl(path) {
+        return `${baseUrl}/storage/v1/object/public/${bucketName}/${encodeStoragePath(path)}`;
+      }
+
+      async function uploadFile(itemId, file, index) {
+        if (!file?.dataUrl || file.storagePath || file.publicUrl || file.storageUrl) {
+          return file;
+        }
+
+        if ((file.mime || "").includes("svg") && file.dataUrl.length < 200000) {
+          return file;
+        }
+
+        const path = `${itemId}/${crypto.randomUUID()}-${index}-${safeFileName(file.fileName)}`;
+        const blob = dataUrlToBlob(file.dataUrl);
+        await request(`/storage/v1/object/${bucketName}/${encodeStoragePath(path)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": file.mime || blob.type || "application/octet-stream",
+            "x-upsert": "true"
+          },
+          body: blob
+        });
+
+        return {
+          fileName: file.fileName,
+          mime: file.mime || blob.type || "application/octet-stream",
+          storagePath: path,
+          publicUrl: publicStorageUrl(path)
+        };
+      }
+
+      async function prepareItemForCloud(item) {
+        const files = await Promise.all(getItemFiles(item).map((file, index) => uploadFile(item.id, file, index)));
+        const primary = files[0] || {};
+        const cloudItem = {
+          ...item,
+          files,
+          fileName: primary.fileName || item.fileName || "",
+          mime: primary.mime || item.mime || "",
+          dataUrl: primary.dataUrl || "",
+          cloudUpdatedAt: undefined
+        };
+        item.files = cloudItem.files;
+        item.fileName = cloudItem.fileName;
+        item.mime = cloudItem.mime;
+        item.dataUrl = cloudItem.dataUrl;
+        return cloudItem;
+      }
+
       return {
         async list() {
           const rows = await request("/rest/v1/materials?select=id,payload,updated_at&order=updated_at.desc");
@@ -1075,12 +1139,10 @@ const fileUrlCache = new WeakMap();
         async upsert(items) {
           if (!items.length) return Promise.resolve();
           for (const item of items) {
+            const cloudItem = await prepareItemForCloud(item);
             const row = {
-              id: item.id,
-              payload: {
-                ...item,
-                cloudUpdatedAt: undefined
-              }
+              id: cloudItem.id,
+              payload: cloudItem
             };
             await request("/rest/v1/materials?on_conflict=id", {
               method: "POST",
@@ -1117,6 +1179,7 @@ const fileUrlCache = new WeakMap();
 
         await flushCloudDeletes();
         await cloudStore.upsert(itemsToSync);
+        await writeMaterialsToLocalDb();
         showToast("Supabaseに保存しました");
         return true;
       } catch (error) {

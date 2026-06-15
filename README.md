@@ -19,6 +19,9 @@ SupabaseのSQL Editorで `supabase/schema.sql` を実行してください。
 
 - `SUPABASE_URL`: Supabase Project URL
 - `SUPABASE_ANON_KEY`: Supabase anon public key
+- `SUPABASE_STORAGE_BUCKET`: `materials`（省略可）
+
+保存を速くするため、PDFや画像本体はSupabase Storageの `materials` バケットへ保存し、`materials` テーブルにはURLとメタ情報だけを保存します。既存プロジェクトに反映する場合も、SupabaseのSQL Editorで `supabase/schema.sql` をもう一度実行してください。
 
 ローカルで確認する場合は `.env.example` を `.env` として複製し、Supabaseの値を入れてから `npm run dev` を実行してください。`.env` があると `/api/config` からSupabase設定が返り、登録内容は端末内だけでなくSupabaseにも保存されます。
 

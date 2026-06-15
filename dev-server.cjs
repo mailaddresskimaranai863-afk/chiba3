@@ -40,7 +40,8 @@ http.createServer((req, res) => {
     });
     res.end(JSON.stringify({
       supabaseUrl: process.env.SUPABASE_URL || "",
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ""
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+      supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || "materials"
     }));
     return;
   }

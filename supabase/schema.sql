@@ -50,3 +50,37 @@ on public.materials
 for delete
 to anon
 using (true);
+
+insert into storage.buckets (id, name, public)
+values ('materials', 'materials', true)
+on conflict (id) do update
+set public = excluded.public;
+
+drop policy if exists "Allow anon read material files" on storage.objects;
+create policy "Allow anon read material files"
+on storage.objects
+for select
+to anon
+using (bucket_id = 'materials');
+
+drop policy if exists "Allow anon insert material files" on storage.objects;
+create policy "Allow anon insert material files"
+on storage.objects
+for insert
+to anon
+with check (bucket_id = 'materials');
+
+drop policy if exists "Allow anon update material files" on storage.objects;
+create policy "Allow anon update material files"
+on storage.objects
+for update
+to anon
+using (bucket_id = 'materials')
+with check (bucket_id = 'materials');
+
+drop policy if exists "Allow anon delete material files" on storage.objects;
+create policy "Allow anon delete material files"
+on storage.objects
+for delete
+to anon
+using (bucket_id = 'materials');
