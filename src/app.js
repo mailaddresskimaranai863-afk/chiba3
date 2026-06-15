@@ -153,10 +153,10 @@ const fileUrlCache = new WeakMap();
         checked: false
       });
 
-      saveMaterials();
+      const saved = await saveMaterials();
       render();
       setPreview(materials[0].id);
-      showToast(files.length > 1 ? `1カードに${files.length}件まとめて追加しました` : "1件追加しました");
+      if (saved) showToast(files.length > 1 ? `1カードに${files.length}件まとめて追加しました` : "1件追加しました");
     });
 
     el.openPreview.addEventListener("click", () => {
@@ -300,7 +300,7 @@ const fileUrlCache = new WeakMap();
         console.warn("Local IndexedDB save failed", error);
         alert("保存に失敗しました。ブラウザの保存容量を確認してください。");
       });
-      scheduleCloudSync();
+      return syncCloudNow();
     }
 
     function today() {
@@ -488,16 +488,16 @@ const fileUrlCache = new WeakMap();
           setPreview(item.id);
         });
 
-        card.querySelector(".fav").addEventListener("click", (e) => {
+        card.querySelector(".fav").addEventListener("click", async (e) => {
           e.stopPropagation();
           item.checked = !item.checked;
           e.currentTarget.classList.toggle("on", item.checked);
-          saveMaterials();
+          const saved = await saveMaterials();
           renderStats();
           if (el.sort.value === "checked") {
             render();
           }
-          showToast(item.checked ? "印刷対象に追加しました" : "印刷対象から外しました");
+          if (saved) showToast(item.checked ? "印刷対象に追加しました" : "印刷対象から外しました");
         });
 
         el.grid.appendChild(card);
@@ -680,25 +680,24 @@ const fileUrlCache = new WeakMap();
 
       currentType = selectedType;
       currentCategory = "すべて";
-      saveMaterials();
+      const saved = await saveMaterials();
       closeModal();
       render();
       setPreview(payload.id);
       const fileCount = getItemFiles(payload).length;
-      showToast(editId ? "更新しました" : fileCount > 1 ? `1カードに${fileCount}件登録しました` : "登録しました");
+      if (saved) showToast(editId ? "更新しました" : fileCount > 1 ? `1カードに${fileCount}件登録しました` : "登録しました");
     }
 
-    function deleteItem(id) {
+    async function deleteItem(id) {
       const item = materials.find(m => m.id === id);
       if (!item) return;
       if (!confirm(`「${item.title}」を削除しますか？`)) return;
       materials = materials.filter(m => m.id !== id);
       queueCloudDelete(id);
-      saveMaterials();
-      deleteCloudItem(id);
+      const saved = await saveMaterials();
       if (currentPreviewId === id) clearPreview();
       render();
-      showToast("削除しました");
+      if (saved) showToast("削除しました");
     }
 
 
@@ -716,16 +715,16 @@ const fileUrlCache = new WeakMap();
       el.clearSelectedTop.style.opacity = count === 0 ? ".45" : "1";
     }
 
-    function clearCheckedMaterials() {
+    async function clearCheckedMaterials() {
       const count = getCheckedMaterials().length;
       if (!count) {
         showToast("チェックされたチラシがありません");
         return;
       }
       materials = materials.map(m => getItemType(m) === currentType ? ({ ...m, checked: false }) : m);
-      saveMaterials();
+      const saved = await saveMaterials();
       render();
-      showToast("チェックを解除しました");
+      if (saved) showToast("チェックを解除しました");
     }
 
     function printCheckedMaterials() {
@@ -936,16 +935,16 @@ const fileUrlCache = new WeakMap();
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         try {
           const data = JSON.parse(reader.result);
           if (!Array.isArray(data)) throw new Error("invalid");
           if (!confirm("現在のチラシ一覧を読み込みデータで置き換えますか？")) return;
           materials = data.map(item => ({ ...normalizeItem(item), files: getItemFiles(item) }));
-          saveMaterials();
+          const saved = await saveMaterials();
           clearPreview();
           render();
-          showToast("読み込みました");
+          if (saved) showToast("読み込みました");
         } catch {
           alert("JSONの形式が正しくありません。");
         } finally {
@@ -1019,7 +1018,7 @@ const fileUrlCache = new WeakMap();
         showToast("Supabaseと同期しました");
       } catch (error) {
         console.warn("Supabase sync failed", error);
-        showToast("端末内に保存しました");
+        showToast("Supabaseに接続できません");
       }
     }
 
@@ -1098,6 +1097,28 @@ const fileUrlCache = new WeakMap();
       remoteItems.forEach(item => byId.set(item.id, item));
       localItems.forEach(item => byId.set(item.id, item));
       return [...byId.values()].map(item => ({ ...normalizeItem(item), files: getItemFiles(item) }));
+    }
+
+    async function syncCloudNow() {
+      try {
+        if (!cloudStore) {
+          const config = await loadCloudConfig();
+          if (!config) {
+            throw new Error("Supabase設定がありません。SUPABASE_URLとSUPABASE_ANON_KEYを設定してください。");
+          }
+          cloudStore = createSupabaseRestStore(config);
+        }
+
+        await flushCloudDeletes();
+        await cloudStore.upsert(materials);
+        showToast("Supabaseに保存しました");
+        return true;
+      } catch (error) {
+        console.warn("Supabase sync failed", error);
+        showToast("Supabase保存に失敗しました");
+        alert(`${error.message}\n\n他の端末で同じ内容を見るには、Supabaseへの保存が必要です。SupabaseのURL、anon key、schema.sqlの実行状況を確認してください。`);
+        return false;
+      }
     }
 
     function scheduleCloudSync() {
