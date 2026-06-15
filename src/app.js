@@ -29,8 +29,8 @@ let cloudBooted = false;
 
     const PRELOADED_MATERIALS = [];
 
-    const materialCategories = ["すべて", "工事看板", "安全用品", "熱中症対策", "防犯対策", "レンタル", "屋外広告", "提案資料", "価格表", "社内資料", "その他"];
-    const signCategories = ["すべて", "件名板", "掲示板", "その他看板類", "シート看板", "コーンサイン", "建築計画のお知らせ", "立体表示カバー", "ステッカー類", "チョッキ類"];
+    const materialCategories = ["すべて", "安全用品", "その他"];
+    const signCategories = ["すべて", "件名板類", "掲示板", "その他看板類", "その他"];
     const signCategorySet = new Set(signCategories.filter(cat => cat !== "すべて"));
 
     let currentType = "material";
