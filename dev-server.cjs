@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 const root = process.cwd();
+loadDotEnv(path.join(root, ".env"));
+
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -10,13 +12,36 @@ const types = {
   ".json": "application/json; charset=utf-8"
 };
 
+function loadDotEnv(filePath) {
+  if (!fs.existsSync(filePath)) return;
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) return;
+
+    const [, key, rawValue] = match;
+    if (process.env[key]) return;
+
+    process.env[key] = rawValue
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+  });
+}
+
 http.createServer((req, res) => {
   if (req.url === "/api/config") {
     res.writeHead(200, {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store"
     });
-    res.end(JSON.stringify({ supabaseUrl: "", supabaseAnonKey: "" }));
+    res.end(JSON.stringify({
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ""
+    }));
     return;
   }
 

@@ -1004,16 +1004,18 @@ const fileUrlCache = new WeakMap();
       cloudStore = createSupabaseRestStore(config);
 
       try {
+        const localMaterials = materials;
         const remoteMaterials = await cloudStore.list();
         if (remoteMaterials.length) {
-          materials = mergeMaterials(materials, remoteMaterials);
+          materials = remoteMaterials;
           await writeMaterialsToLocalDb();
           render();
           setPreview(getFiltered()[0]?.id);
+        } else if (localMaterials.length) {
+          await cloudStore.upsert(localMaterials);
         }
 
         await flushCloudDeletes();
-        await cloudStore.upsert(materials);
         showToast("Supabaseと同期しました");
       } catch (error) {
         console.warn("Supabase sync failed", error);

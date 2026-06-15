@@ -20,6 +20,8 @@ SupabaseのSQL Editorで `supabase/schema.sql` を実行してください。
 - `SUPABASE_URL`: Supabase Project URL
 - `SUPABASE_ANON_KEY`: Supabase anon public key
 
+ローカルで確認する場合は `.env.example` を `.env` として複製し、Supabaseの値を入れてから `npm run dev` を実行してください。`.env` があると `/api/config` からSupabase設定が返り、登録内容は端末内だけでなくSupabaseにも保存されます。
+
 環境変数がない場合でも、アプリは端末内保存で動きます。端末内保存には、大きめのPDFも扱いやすいIndexedDBを使います。環境変数がある場合は、端末内保存に加えてSupabaseへ同期します。
 
 ## GitHubからVercelへ公開
