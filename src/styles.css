@@ -776,11 +776,52 @@
       grid-column: 1 / -1;
     }
 
+    .check-field {
+      align-content: end;
+      min-height: 72px;
+    }
+
     label {
       font-size: 12px;
       color: var(--muted);
       font-weight: 900;
       letter-spacing: .05em;
+    }
+
+    .check-label {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      letter-spacing: 0;
+    }
+
+    .check-label input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--green);
+    }
+
+    .check-label:has(input:focus-visible) {
+      border-color: rgba(var(--accent-rgb), .65);
+      box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .10);
+    }
+
+    .check-label:has(input:checked) {
+      border-color: rgba(var(--accent-rgb), .45);
+      background: var(--green-soft);
+      color: var(--green-dark);
+    }
+
+    .check-label span {
+      font-size: 14px;
     }
 
     input[type="text"], input[type="date"], select, textarea {

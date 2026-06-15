@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>千葉支社専用資料</title>
+  <title>千葉支社専用チラシ</title>
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
@@ -12,18 +12,18 @@
       <div class="brand">
         <div class="brand-mark">棚</div>
         <div>
-          <h1>千葉支社専用資料</h1>
-          <p>資料とサインを切り替えて管理</p>
+          <h1>千葉支社専用チラシ</h1>
+          <p>チラシとサインを切り替えて管理</p>
         </div>
       </div>
 
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input id="searchInput" type="search" placeholder="資料名・サイン名・タグで検索" autocomplete="off" />
+        <input id="searchInput" type="search" placeholder="チラシ名・サイン名・タグで検索" autocomplete="off" />
       </div>
 
       <div class="view-switch" role="tablist" aria-label="表示切り替え">
-        <button class="view-btn active" id="materialViewBtn" data-view="material" type="button" role="tab" aria-selected="true">資料</button>
+        <button class="view-btn active" id="materialViewBtn" data-view="material" type="button" role="tab" aria-selected="true">チラシ</button>
         <button class="view-btn" id="signViewBtn" data-view="sign" type="button" role="tab" aria-selected="false">サイン</button>
       </div>
 
@@ -33,7 +33,7 @@
       </div>
 
       <div class="side-actions">
-        <button class="primary-btn" id="addBtn">＋ 資料を追加</button>
+        <button class="primary-btn" id="addBtn">＋ チラシを追加</button>
         <button class="ghost-btn" id="exportBtn">JSONを書き出し</button>
         <label class="ghost-btn" style="text-align:center; cursor:pointer;">
           JSONを読み込み
@@ -45,8 +45,8 @@
     <main class="main panel">
       <div class="topbar">
         <div>
-          <h2 id="listTitle">資料一覧</h2>
-          <p id="resultText">資料を追加すると、この棚に表示されます。</p>
+          <h2 id="listTitle">チラシ一覧</h2>
+          <p id="resultText">チラシを追加すると、この棚に表示されます。</p>
         </div>
         <div class="tools">
           <select id="sortSelect" title="並び替え">
@@ -72,7 +72,7 @@
       <div id="printbar" class="printbar">
         <div>
           <strong id="checkedCount">0件チェック中</strong><br>
-          <span>チェックした資料だけを、まとめて印刷できます。</span>
+          <span>チェックしたチラシだけを、まとめて印刷できます。</span>
         </div>
         <div class="printbar-actions">
           <button class="print-btn" id="printSelected">まとめて印刷</button>
@@ -87,8 +87,8 @@
 
       <section id="grid" class="grid"></section>
       <div id="empty" class="empty" style="display:none;">
-        <strong>該当する資料がありません</strong>
-        検索ワードやカテゴリを変えるか、資料を追加してください。
+        <strong>該当するチラシがありません</strong>
+        検索ワードやカテゴリを変えるか、チラシを追加してください。
       </div>
     </main>
 
@@ -104,7 +104,7 @@
       </div>
       <div>
         <p id="previewTitle" class="preview-title">未選択</p>
-        <div id="previewMeta" class="preview-meta">資料を選択してください。</div>
+        <div id="previewMeta" class="preview-meta">チラシを選択してください。</div>
       </div>
       <div class="preview-actions">
         <button class="ghost-btn" id="openPreview" disabled>開く</button>
@@ -117,7 +117,7 @@
     <div class="modal">
       <div class="modal-head">
         <div>
-          <h3 id="modalTitle">資料を追加</h3>
+          <h3 id="modalTitle">チラシを追加</h3>
           <p>PDF・画像をまとめて登録できます。</p>
         </div>
         <button class="close-btn" id="closeModal" type="button">×</button>
@@ -126,13 +126,13 @@
         <input type="hidden" id="editId">
         <div class="form-grid">
           <div class="field">
-            <label>資料名</label>
+            <label>チラシ名</label>
             <input id="titleInput" type="text" placeholder="未入力の場合はファイル名を使用">
           </div>
           <div class="field">
             <label>登録先</label>
             <select id="typeInput">
-              <option value="material">資料</option>
+              <option value="material">チラシ</option>
               <option value="sign">サイン</option>
             </select>
           </div>
@@ -147,6 +147,12 @@
           <div class="field">
             <label>日付</label>
             <input id="dateInput" type="date">
+          </div>
+          <div class="field check-field">
+            <label class="check-label">
+              <input id="rentalInput" type="checkbox">
+              <span>レンタル可</span>
+            </label>
           </div>
           <div class="field full">
             <label>メモ</label>

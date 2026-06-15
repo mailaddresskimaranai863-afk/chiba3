@@ -62,6 +62,7 @@ let cloudBooted = false;
       tags: document.getElementById("tagsInput"),
       date: document.getElementById("dateInput"),
       memo: document.getElementById("memoInput"),
+      rental: document.getElementById("rentalInput"),
       file: document.getElementById("fileInput"),
       previewBody: document.getElementById("previewBody"),
       previewTitle: document.getElementById("previewTitle"),
@@ -137,6 +138,7 @@ let cloudBooted = false;
         category: dropCategory,
         tags: [],
         memo: "",
+        rentalAvailable: false,
         date: today(),
         files: fileItems,
         fileName: first.fileName,
@@ -179,6 +181,7 @@ let cloudBooted = false;
       return {
         ...item,
         type,
+        rentalAvailable: Boolean(item.rentalAvailable),
         checked: item.checked || false
       };
     }
@@ -188,7 +191,7 @@ let cloudBooted = false;
     }
 
     function getTypeLabel(type = currentType) {
-      return type === "sign" ? "サイン" : "資料";
+      return type === "sign" ? "サイン" : "チラシ";
     }
 
     function getCurrentCategories(type = currentType) {
@@ -235,7 +238,7 @@ let cloudBooted = false;
         return item.files;
       }
       return [{
-        fileName: item.fileName || `${item.title || "資料"}.file`,
+        fileName: item.fileName || `${item.title || "チラシ"}.file`,
         mime: item.mime || "",
         dataUrl: item.dataUrl || ""
       }];
@@ -288,9 +291,9 @@ let cloudBooted = false;
         "防犯対策": "◎",
         "レンタル": "↻",
         "屋外広告": "◇",
-        "提案資料": "◫",
+        "提案チラシ": "◫",
         "価格表": "￥",
-        "社内資料": "●",
+        "社内チラシ": "●",
         "件名板": "▤",
         "掲示板": "▥",
         "その他看板類": "▧",
@@ -323,7 +326,7 @@ let cloudBooted = false;
         list = list.filter(m => {
           const fileNames = getItemFiles(m).map(f => f.fileName).join(" ");
           const haystack = [
-            m.title, m.category, m.memo, m.fileName, fileNames,
+            m.title, m.category, m.memo, m.fileName, fileNames, m.rentalAvailable ? "レンタル可" : "",
             ...(m.tags || [])
           ].join(" ").toLowerCase();
           return haystack.includes(q);
@@ -361,12 +364,13 @@ let cloudBooted = false;
         const ext = getExt(primary.fileName, primary.mime);
         const thumb = createThumbHtml(primary);
         const fileCount = files.length > 1 ? `<span class="file-count">${files.length}ファイル</span>` : "";
+        const rentalBadge = item.rentalAvailable ? `<span class="badge">レンタル可</span>` : "";
 
         card.innerHTML = `
           <button class="fav ${item.checked ? "on" : ""}" title="印刷対象にする">✓</button>
           <div class="thumb">
             ${thumb}
-            <span class="badge">${item.category}</span>
+            ${rentalBadge}
             ${fileCount}
           </div>
           <div class="card-body">
@@ -502,9 +506,11 @@ let cloudBooted = false;
         el.tags.value = (item.tags || []).join(", ");
         el.date.value = item.date || today();
         el.memo.value = item.memo || "";
+        el.rental.checked = Boolean(item.rentalAvailable);
       } else {
         el.modalTitle.textContent = `${getTypeLabel(type)}を追加`;
         el.editId.value = "";
+        el.rental.checked = false;
       }
     }
 
@@ -525,6 +531,7 @@ let cloudBooted = false;
       const selectedTags = el.tags.value.split(",").map(s => s.trim()).filter(Boolean);
       const selectedMemo = el.memo.value.trim();
       const selectedDate = el.date.value || today();
+      const selectedRental = el.rental.checked;
 
       const fileItems = [];
       for (const file of files) {
@@ -550,6 +557,7 @@ let cloudBooted = false;
         category: selectedCategory,
         tags: selectedTags,
         memo: selectedMemo,
+        rentalAvailable: selectedRental,
         date: selectedDate,
         files: finalFiles,
         fileName: primary?.fileName || existing?.fileName || "",
@@ -613,7 +621,7 @@ let cloudBooted = false;
     function clearCheckedMaterials() {
       const count = getCheckedMaterials().length;
       if (!count) {
-        showToast("チェックされた資料がありません");
+        showToast("チェックされたチラシがありません");
         return;
       }
       materials = materials.map(m => getItemType(m) === currentType ? ({ ...m, checked: false }) : m);
@@ -625,7 +633,7 @@ let cloudBooted = false;
     function printCheckedMaterials() {
       const list = getCheckedMaterials();
       if (!list.length) {
-        showToast("印刷する資料にチェックを入れてください");
+        showToast("印刷するチラシにチェックを入れてください");
         return;
       }
 
@@ -818,7 +826,7 @@ let cloudBooted = false;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `営業資料棚_backup_${today()}.json`;
+      a.download = `千葉支社チラシ棚_backup_${today()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -831,7 +839,7 @@ let cloudBooted = false;
         try {
           const data = JSON.parse(reader.result);
           if (!Array.isArray(data)) throw new Error("invalid");
-          if (!confirm("現在の資料一覧を読み込みデータで置き換えますか？")) return;
+          if (!confirm("現在のチラシ一覧を読み込みデータで置き換えますか？")) return;
           materials = data.map(item => ({ ...normalizeItem(item), files: getItemFiles(item) }));
           saveMaterials();
           clearPreview();
