@@ -413,10 +413,12 @@
       border: 1px solid var(--line);
       border-radius: 22px;
       overflow: hidden;
-      min-height: 252px;
+      min-height: 276px;
       box-shadow: 0 8px 22px rgba(var(--accent-rgb), .055);
       transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
       cursor: default;
+      display: flex;
+      flex-direction: column;
     }
 
     .card:hover, .card.selected {
@@ -426,7 +428,7 @@
     }
 
     .thumb {
-      height: 136px;
+      height: 184px;
       background:
         linear-gradient(135deg, var(--thumb-start), #ffffff);
       display: grid;
@@ -448,19 +450,6 @@
       background: #fff;
       pointer-events: none;
       display: block;
-    }
-
-    .file-count {
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      background: rgba(20,35,28,.78);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 900;
-      backdrop-filter: blur(8px);
     }
 
     .attachment-list {
@@ -570,32 +559,25 @@
 
     .card-body {
       padding: 14px;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
     }
 
     .card-title {
       font-size: 14px;
       line-height: 1.42;
-      margin: 0 0 9px;
+      margin: auto 0 9px;
       min-height: 40px;
       font-weight: 900;
-    }
-
-    .meta {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      margin-bottom: 10px;
     }
 
     .tag-row {
       display: flex;
       flex-wrap: wrap;
       gap: 5px;
-      min-height: 25px;
+      min-height: 0;
+      margin-bottom: 8px;
     }
 
     .tag {
@@ -610,7 +592,7 @@
     .card-actions {
       display: flex;
       gap: 7px;
-      margin-top: 12px;
+      margin-top: 0;
     }
 
     .empty {

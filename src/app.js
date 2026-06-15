@@ -9,6 +9,7 @@ const CLOUD_CONFIG_ENDPOINT = "/api/config";
 let cloudStore = null;
 let cloudSyncTimer = null;
 let cloudBooted = false;
+const fileUrlCache = new WeakMap();
 
     const sampleSvg = (label, color = "#16875a") => {
       const svg = `
@@ -330,13 +331,35 @@ let cloudBooted = false;
       return (file.mime || "").startsWith("image/") || (file.mime || "").includes("svg");
     }
 
+    function dataUrlToBlob(dataUrl = "") {
+      const [header = "", body = ""] = dataUrl.split(",", 2);
+      const mime = (header.match(/^data:([^;,]+)/) || [])[1] || "application/octet-stream";
+      const isBase64 = header.includes(";base64");
+      const binary = isBase64 ? atob(body) : decodeURIComponent(body);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { type: mime });
+    }
+
+    function getFileDisplayUrl(file) {
+      if (!file?.dataUrl) return "";
+      if (!isPdfFile(file)) return file.dataUrl;
+      if (fileUrlCache.has(file)) return fileUrlCache.get(file);
+      const url = URL.createObjectURL(dataUrlToBlob(file.dataUrl));
+      fileUrlCache.set(file, url);
+      return url;
+    }
+
     function createThumbHtml(file) {
       const ext = getExt(file.fileName, file.mime);
       if (isImageFile(file)) {
         return `<img src="${file.dataUrl}" alt="">`;
       }
       if (isPdfFile(file)) {
-        return `<iframe class="pdf-thumb" src="${file.dataUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0"></iframe>`;
+        const pdfUrl = getFileDisplayUrl(file);
+        return `<iframe class="pdf-thumb" src="${pdfUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0"></iframe>`;
       }
       return `<div class="doc-icon">${ext}</div>`;
     }
@@ -435,9 +458,7 @@ let cloudBooted = false;
 
         const files = getItemFiles(item);
         const primary = getPrimaryFile(item);
-        const ext = getExt(primary.fileName, primary.mime);
         const thumb = createThumbHtml(primary);
-        const fileCount = files.length > 1 ? `<span class="file-count">${files.length}ファイル</span>` : "";
         const rentalBadge = item.rentalAvailable ? `<span class="badge">レンタル可</span>` : "";
 
         card.innerHTML = `
@@ -445,16 +466,10 @@ let cloudBooted = false;
           <div class="thumb">
             ${thumb}
             ${rentalBadge}
-            ${fileCount}
           </div>
           <div class="card-body">
-            <h3 class="card-title">${escapeHtml(item.title)}</h3>
-            <div class="meta">
-              <span>${files.length > 1 ? `${files.length}ファイル` : escapeHtml(ext)}</span>
-              <span>・</span>
-              <span>${formatDate(item.date)}</span>
-            </div>
             <div class="tag-row">${(item.tags || []).slice(0, 3).map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join("")}</div>
+            <h3 class="card-title">${escapeHtml(item.title)}</h3>
             <div class="card-actions">
               <button class="mini-btn open">開く</button>
               <button class="mini-btn edit">編集</button>
@@ -525,12 +540,13 @@ let cloudBooted = false;
 
       if (isImageFile(file)) {
         const img = document.createElement("img");
-        img.src = file.dataUrl;
+        img.src = getFileDisplayUrl(file);
         img.alt = item.title;
         el.previewBody.appendChild(img);
       } else if (isPdfFile(file)) {
         const iframe = document.createElement("iframe");
-        iframe.src = `${file.dataUrl}#page=1&toolbar=0&navpanes=0`;
+        iframe.src = `${getFileDisplayUrl(file)}#page=1&toolbar=0&navpanes=0`;
+        iframe.title = file.fileName || item.title;
         el.previewBody.appendChild(iframe);
       } else {
         el.previewBody.innerHTML = `<div class="preview-placeholder"><div class="doc-icon">${getExt(file.fileName, file.mime)}</div><br>プレビュー未対応の形式です。</div>`;
@@ -720,9 +736,10 @@ let cloudBooted = false;
 
       const printable = pages.map((page) => {
         const file = page.file;
+        const fileUrl = getFileDisplayUrl(file);
         const body = isPdfFile(file)
-          ? `<iframe class="print-frame" src="${file.dataUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0"></iframe>`
-          : `<img src="${file.dataUrl}" alt="">`;
+          ? `<iframe class="print-frame" src="${fileUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0"></iframe>`
+          : `<img src="${fileUrl}" alt="">`;
         return `
           <section class="print-page">
             <div class="print-data">${body}</div>
@@ -875,9 +892,10 @@ let cloudBooted = false;
         alert("ポップアップがブロックされました。");
         return;
       }
+      const fileUrl = getFileDisplayUrl(file);
       const content = isImageFile(file)
-        ? `<img src="${file.dataUrl}" style="max-width:100vw;max-height:100vh;display:block;margin:auto;">`
-        : `<iframe src="${file.dataUrl}" style="border:0;width:100vw;height:100vh;"></iframe>`;
+        ? `<img src="${fileUrl}" style="max-width:100vw;max-height:100vh;display:block;margin:auto;">`
+        : `<iframe src="${fileUrl}#page=1" style="border:0;width:100vw;height:100vh;"></iframe>`;
       win.document.write(`
         <title>${escapeHtml(item.title)}</title>
         ${content}
@@ -888,7 +906,7 @@ let cloudBooted = false;
       const files = getItemFiles(item);
       const file = files[Math.min(Math.max(fileIndex, 0), files.length - 1)] || files[0];
       const a = document.createElement("a");
-      a.href = file.dataUrl;
+      a.href = getFileDisplayUrl(file);
       a.download = file.fileName || `${item.title}.file`;
       document.body.appendChild(a);
       a.click();
