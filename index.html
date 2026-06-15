@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>?????????</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar panel">
+      <div class="brand">
+        <div class="brand-mark">棚</div>
+        <div>
+          <h1>営業資料・サイン棚</h1>
+          <p>資料とサインを切り替えて管理</p>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input id="searchInput" type="search" placeholder="資料名・サイン名・タグで検索" autocomplete="off" />
+      </div>
+
+      <div class="view-switch" role="tablist" aria-label="表示切り替え">
+        <button class="view-btn active" id="materialViewBtn" data-view="material" type="button" role="tab" aria-selected="true">資料</button>
+        <button class="view-btn" id="signViewBtn" data-view="sign" type="button" role="tab" aria-selected="false">サイン</button>
+      </div>
+
+      <div>
+        <div class="side-title">CATEGORY</div>
+        <div id="categoryList" class="category-list"></div>
+      </div>
+
+      <div class="side-actions">
+        <button class="primary-btn" id="addBtn">＋ 資料を追加</button>
+        <button class="ghost-btn" id="exportBtn">JSONを書き出し</button>
+        <label class="ghost-btn" style="text-align:center; cursor:pointer;">
+          JSONを読み込み
+          <input id="importInput" type="file" accept="application/json" hidden>
+        </label>
+      </div>
+    </aside>
+
+    <main class="main panel">
+      <div class="topbar">
+        <div>
+          <h2 id="listTitle">資料一覧</h2>
+          <p id="resultText">資料を追加すると、この棚に表示されます。</p>
+        </div>
+        <div class="tools">
+          <select id="sortSelect" title="並び替え">
+            <option value="new">新しい順</option>
+            <option value="old">古い順</option>
+            <option value="title">タイトル順</option>
+            <option value="checked">チェック優先</option>
+          </select>
+          <button class="ghost-btn" id="printSelectedTop">チェック分を印刷</button>
+          <button class="ghost-btn" id="clearSelectedTop">全解除</button>
+          <button class="ghost-btn" id="toggleDrop">ドラッグ追加</button>
+          <button class="primary-btn" id="addBtnTop">＋ 追加</button>
+        </div>
+      </div>
+
+      <section class="stats">
+        <div class="stat"><strong id="totalCount">0</strong><span id="totalLabel">登録数</span></div>
+        <div class="stat"><strong id="pdfCount">0</strong><span>PDF</span></div>
+        <div class="stat"><strong id="imageCount">0</strong><span>画像</span></div>
+        <div class="stat"><strong id="favCount">0</strong><span>チェック中</span></div>
+      </section>
+
+      <div id="printbar" class="printbar">
+        <div>
+          <strong id="checkedCount">0件チェック中</strong><br>
+          <span>チェックした資料だけを、まとめて印刷できます。</span>
+        </div>
+        <div class="printbar-actions">
+          <button class="print-btn" id="printSelected">まとめて印刷</button>
+          <button class="print-btn sub" id="clearSelected">チェック解除</button>
+        </div>
+      </div>
+
+      <div id="dropzone" class="dropzone">
+        <span>ここにPDF・画像をドラッグして追加</span>
+        <span>分類は「その他」で仮登録されます</span>
+      </div>
+
+      <section id="grid" class="grid"></section>
+      <div id="empty" class="empty" style="display:none;">
+        <strong>該当する資料がありません</strong>
+        検索ワードやカテゴリを変えるか、資料を追加してください。
+      </div>
+    </main>
+
+    <aside class="preview panel">
+      <div class="preview-head">
+        <h3>プレビュー</h3>
+        <button class="mini-btn" id="clearPreview">解除</button>
+      </div>
+      <div id="previewBody" class="preview-body">
+        <div class="preview-placeholder">
+          カードにカーソルを乗せると、ここに大きく表示されます。
+        </div>
+      </div>
+      <div>
+        <p id="previewTitle" class="preview-title">未選択</p>
+        <div id="previewMeta" class="preview-meta">資料を選択してください。</div>
+      </div>
+      <div class="preview-actions">
+        <button class="ghost-btn" id="openPreview" disabled>開く</button>
+        <button class="ghost-btn" id="downloadPreview" disabled>DL</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3 id="modalTitle">資料を追加</h3>
+          <p>PDF・画像をまとめて登録できます。</p>
+        </div>
+        <button class="close-btn" id="closeModal" type="button">×</button>
+      </div>
+      <form id="materialForm">
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+          <div class="field">
+            <label>資料名</label>
+            <input id="titleInput" type="text" placeholder="未入力の場合はファイル名を使用">
+          </div>
+          <div class="field">
+            <label>登録先</label>
+            <select id="typeInput">
+              <option value="material">資料</option>
+              <option value="sign">サイン</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>カテゴリ</label>
+            <select id="categoryInput"></select>
+          </div>
+          <div class="field">
+            <label>タグ</label>
+            <input id="tagsInput" type="text" placeholder="例：夏物, 安全, 現場">
+          </div>
+          <div class="field">
+            <label>日付</label>
+            <input id="dateInput" type="date">
+          </div>
+          <div class="field full">
+            <label>メモ</label>
+            <textarea id="memoInput" placeholder="補足があれば入力"></textarea>
+          </div>
+          <div class="field full">
+            <label>ファイル</label>
+            <div class="file-box">
+              <input id="fileInput" type="file" accept="application/pdf,image/*" multiple>
+              <small style="color:var(--muted); line-height:1.6;">
+                PDF・画像を複数選択できます。名称が未入力の場合はファイル名で登録されます。
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="ghost-btn" type="button" id="cancelBtn">キャンセル</button>
+          <button class="primary-btn" type="submit">登録する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">保存しました</div>
+
+  
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
